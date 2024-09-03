@@ -48,29 +48,20 @@ def process_frame(frame):
                         nose_2d = (lm.x * img_w, lm.y * img_h)
                         nose_3d = (lm.x * img_w, lm.y * img_h, lm.z * 3000)
                     x, y = int(lm.x * img_w), int(lm.y * img_h)
-
                     face_2d.append([x, y])
                     face_3d.append(([x, y, lm.z]))
-
             # Get 2d Coord
             face_2d = np.array(face_2d, dtype=np.float64)
-
             face_3d = np.array(face_3d, dtype=np.float64)
-
             focal_length = 1 * img_w
-
             cam_matrix = np.array([[focal_length, 0, img_h / 2],
                                    [0, focal_length, img_w / 2],
                                    [0, 0, 1]])
             distortion_matrix = np.zeros((4, 1), dtype=np.float64)
-
             success, rotation_vec, translation_vec = cv2.solvePnP(face_3d, face_2d, cam_matrix, distortion_matrix)
-
             # getting rotational of face
             rmat, jac = cv2.Rodrigues(rotation_vec)
-
             angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
-
             x = angles[0] * 360
             y = angles[1] * 360
             z = angles[2] * 360
@@ -88,15 +79,27 @@ def process_frame(frame):
                 text = "Forward"
 
             # Check if the pose indicates a change in data row
+            counter_of_green_window = 0
             if text != "Forward":
+                counter_of_green_window += 1
                 new_row_index = random.randint(0, len(ua_df) - 1)  # Generate a new random row index
-                if new_row_index != current_row_index:
+                if new_row_index != current_row_index and counter_of_green_window == 1:
                     current_row_index = new_row_index
-                    update_queue.put(current_row_index)  # Put the new row index in the queue
+            #current_row_index = 0
+            if text == "Looking Left":
+                update_queue.put({"row": current_row_index, "color": "left_window_green"})  # Put the new row index in the queue
+            elif text == "Looking Right":
+                update_queue.put({"row": current_row_index, "color": "right_window_green"})
+            elif text == "Looking Down":
+                update_queue.put({"row": current_row_index, "color": "bottom_window_green"})
+            elif text == "Looking Up":
+                update_queue.put({"row": current_row_index, "color": "top_window_green"})
+            else:
+                update_queue.put({"row": current_row_index, "color": None})
 
 
-            nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rotation_vec, translation_vec, cam_matrix,
-                                                             distortion_matrix)
+            #nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rotation_vec, translation_vec, cam_matrix,
+            #                                                 distortion_matrix)
 
             p1 = (int(nose_2d[0]), int(nose_2d[1]))
             p2 = (int(nose_2d[0] + y * 10), int(nose_2d[1] - x * 10))
@@ -112,9 +115,8 @@ def process_frame(frame):
         totalTime = end - start
 
         fps = 1 / totalTime
-        print("FPS: ", fps)
-
-        cv2.putText(image, f'FPS: {int(fps)}', (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 2)
+        #print("FPS: ", fps)
+        #cv2.putText(image, f'FPS: {int(fps)}', (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 2)
 
         mp_drawing.draw_landmarks(image=image,
                                   landmark_list=face_landmarks,
@@ -145,8 +147,16 @@ def listen_updates():
     def event_stream():
         while True:
             row_index = update_queue.get()
-            yield f'data: {{"row": {row_index}}}\n\n'
-
+            if row_index["color"] == "left_window_green":
+                yield f'data: {{"row": {row_index["row"]}, "color": "left_window_green"}}\n\n'
+            elif row_index["color"] == "right_window_green":
+                yield f'data: {{"row": {row_index["row"]}, "color": "right_window_green"}}\n\n'
+            elif row_index["color"] == "bottom_window_green":
+                yield f'data: {{"row": {row_index["row"]}, "color": "bottom_window_green"}}\n\n'
+            elif row_index["color"] == "top_window_green":
+                yield f'data: {{"row": {row_index["row"]}, "color": "top_window_green"}}\n\n'
+            else:
+                yield f'data: {{"row": {row_index["row"]}, "color": "None"}}\n\n'
     return Response(event_stream(), mimetype='text/event-stream')
 
 @app.route('/')

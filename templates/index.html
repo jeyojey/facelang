@@ -77,28 +77,70 @@
             left: 50%;
             transform: translateX(-50%);
         }
+        #correct-count {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            font-size: 2rem;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
     var currentRow = -1;
     var updateTimeout = null;
+    var correctAnswerCount = 0;
 
     $(document).ready(function() {
         function updateRowIndex(newRow) {
             if (newRow !== currentRow) {
                 currentRow = newRow;
+                resetWindowColors();
                 clearTimeout(updateTimeout);
                 updateTimeout = setTimeout(function() {
+                    resetWindowColors();
                     fetchData(newRow);
                 }, 3000);  // 3 seconds delay
             }
+        }
+
+        function resetWindowColors() {
+            $('#left-window').css('background-color', 'blue');
+            $('#right-window').css('background-color', 'red');
+            $('#top-window').css('background-color', 'yellow');
+            $('#bottom-window').css('background-color', 'purple');
         }
 
         function listenForUpdates() {
             const eventSource = new EventSource('/listen_updates');
             eventSource.onmessage = function(event) {
                 const data = JSON.parse(event.data);
+                console.log("Received update:", data); // Debug log
                 updateRowIndex(data.row);
+                if (data.color === 'left_window_green') {
+                    $('#left-window').css('background-color', 'green');
+                    $('#right-window').css('background-color', 'red');
+                    $('#bottom-window').css('background-color', 'yellow');
+                    $('#top-window').css('background-color', 'purple');
+                } else if (data.color === 'right_window_green') {
+                    $('#left-window').css('background-color', 'blue');
+                    $('#right-window').css('background-color', 'green');
+                    $('#bottom-window').css('background-color', 'yellow');
+                    $('#top-window').css('background-color', 'purple');
+                } else if (data.color === 'bottom_window_green') {
+                    $('#left-window').css('background-color', 'blue');
+                    $('#right-window').css('background-color', 'red');
+                    $('#bottom-window').css('background-color', 'green');
+                    $('#top-window').css('background-color', 'purple');
+                } else if (data.color === 'top_window_green') {
+                    $('#left-window').css('background-color', 'blue');
+                    $('#right-window').css('background-color', 'red');
+                    $('#bottom-window').css('background-color', 'yellow');
+                    $('#top-window').css('background-color', 'green');
+                }
             };
         }
 
@@ -112,6 +154,8 @@
                         alert(data.Error);
                         return;
                     }
+
+                    console.log("Fetched data:", data); // Debug log
 
                     // Update the center window with the Ukrainian word
                     $('#center-window').text(data['Ukrainian Word']);
@@ -139,6 +183,41 @@
             });
         }
 
+        function checkCorrectAnswer(row) {
+            $.ajax({
+                url: '/get_data',
+                type: 'GET',
+                data: { row: row },
+                success: function(data) {
+                    if (data.Error) {
+                        alert(data.Error);
+                        return;
+                    }
+                    // Get the text of the green-colored window
+                    let greenWindowText = '';
+                    if ($('#left-window').css('background-color') === 'green') {
+                        greenWindowText = $('#left-window').text();
+                    } else if ($('#right-window').css('background-color') === 'green') {
+                        greenWindowText = $('#right-window').text();
+                    } else if ($('#top-window').css('background-color') === 'green') {
+                        greenWindowText = $('#top-window').text();
+                    } else if ($('#bottom-window').css('background-color') === 'green') {
+                        greenWindowText = $('#bottom-window').text();
+                    }
+
+                    //console.log("Green window text:", greenWindowText); // Debug log
+
+                    // Check if the green window text matches the correct English translation
+                    if (greenWindowText === data['English Translation']) {
+                        correctAnswerCount++;
+                    }
+                    console.log("eng_trans window text:", data['English Translation']); // Debug log
+
+                    $('#correct-count').text("Correct Answer Count: " + correctAnswerCount);
+                    //console.log("Correct Answer Count:", correctAnswerCount); // Debug log
+                }
+            });
+        }
 
         listenForUpdates();
     });
@@ -153,5 +232,6 @@
     <div id="right-window" class="color-window"></div>
     <div id="top-window" class="color-window"></div>
     <div id="bottom-window" class="color-window"></div>
+    <div id="correct-count">Correct Answer Count: 0</div>
 </body>
-</html>
+</html> 3a

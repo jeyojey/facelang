@@ -95,18 +95,6 @@
     var correctAnswerCount = 0;
 
     $(document).ready(function() {
-        function updateRowIndex(newRow) {
-            if (newRow !== currentRow) {
-                currentRow = newRow;
-                resetWindowColors();
-                clearTimeout(updateTimeout);
-                updateTimeout = setTimeout(function() {
-                    resetWindowColors();
-                    fetchData(newRow);
-                }, 3000);  // 3 seconds delay
-            }
-        }
-
         function resetWindowColors() {
             $('#left-window').css('background-color', 'blue');
             $('#right-window').css('background-color', 'red');
@@ -119,42 +107,56 @@
             eventSource.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 console.log("Received update:", data); // Debug log
-                updateRowIndex(data.row);
+
+                var newGreenWindow = null;
                 if (data.color === 'left_window_green') {
                     $('#left-window').css('background-color', 'green');
                     $('#right-window').css('background-color', 'red');
                     $('#bottom-window').css('background-color', 'yellow');
                     $('#top-window').css('background-color', 'purple');
+                    newGreenWindow = '#left-window';
                 } else if (data.color === 'right_window_green') {
                     $('#left-window').css('background-color', 'blue');
                     $('#right-window').css('background-color', 'green');
                     $('#bottom-window').css('background-color', 'yellow');
                     $('#top-window').css('background-color', 'purple');
+                    newGreenWindow = '#right-window';
                 } else if (data.color === 'bottom_window_green') {
                     $('#left-window').css('background-color', 'blue');
                     $('#right-window').css('background-color', 'red');
                     $('#bottom-window').css('background-color', 'green');
                     $('#top-window').css('background-color', 'purple');
+                    newGreenWindow = '#bottom-window';
                 } else if (data.color === 'top_window_green') {
                     $('#left-window').css('background-color', 'blue');
                     $('#right-window').css('background-color', 'red');
                     $('#bottom-window').css('background-color', 'yellow');
                     $('#top-window').css('background-color', 'green');
+                    newGreenWindow = '#top-window';
+                }
+                // If the green window has changed, reset the timer and timestamp
+                if (newGreenWindow) {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(function() {
+                        resetWindowColors();
+                        fetchData();
+                        console.log("Should be reset now"); // Debug log
+                    }, 3000);  // 3 seconds delay
                 }
             };
         }
 
-        function fetchData(row) {
+        function fetchData() {
+            var rowIndex = Math.floor(Math.random() * 101); // Change 101 to your maximum number of rows if different
             $.ajax({
                 url: '/get_data',
                 type: 'GET',
-                data: { row: row },
+                data: { row: rowIndex },
                 success: function(data) {
                     if (data.Error) {
                         alert(data.Error);
                         return;
                     }
-
                     console.log("Fetched data:", data); // Debug log
 
                     // Update the center window with the Ukrainian word
@@ -176,6 +178,9 @@
                     $(words[1].id).text(data['Random Word 1']);
                     $(words[2].id).text(data['Random Word 2']);
                     $(words[3].id).text(data['Random Word 3']);
+
+                    // Check the correct answer after updating the windows
+                    checkCorrectAnswer(rowIndex);
                 },
                 error: function() {
                     alert('Error fetching data');
@@ -212,6 +217,11 @@
                         correctAnswerCount++;
                     }
                     console.log("eng_trans window text:", data['English Translation']); // Debug log
+                    console.log("color left:", $('#left-window').css('background-color')); // Debug log
+                    console.log("color right:", $('#right-window').css('background-color')); // Debug log
+                    console.log("color top:", $('#top-window').css('background-color')); // Debug log
+                    console.log("color bottom:", $('#bottom-window').css('background-color')); // Debug log
+
 
                     $('#correct-count').text("Correct Answer Count: " + correctAnswerCount);
                     //console.log("Correct Answer Count:", correctAnswerCount); // Debug log

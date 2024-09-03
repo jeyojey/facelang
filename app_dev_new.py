@@ -18,7 +18,7 @@ mp_drawing = mp.solutions.drawing_utils
 # Define drawing specifications
 drawing_spec = mp_drawing.DrawingSpec(color=(128, 0, 128), thickness=2, circle_radius=1)
 
-current_row_index = 2
+#current_row_index = 2
 
 # Queue for sending updates to the client
 update_queue = queue.Queue()
@@ -78,24 +78,16 @@ def process_frame(frame):
             else:
                 text = "Forward"
 
-            # Check if the pose indicates a change in data row
-            counter_of_green_window = 0
-            if text != "Forward":
-                counter_of_green_window += 1
-                new_row_index = random.randint(0, len(ua_df) - 1)  # Generate a new random row index
-                if new_row_index != current_row_index and counter_of_green_window == 1:
-                    current_row_index = new_row_index
-            #current_row_index = 0
             if text == "Looking Left":
-                update_queue.put({"row": current_row_index, "color": "left_window_green"})  # Put the new row index in the queue
+                update_queue.put({"color": "left_window_green"})  # Put the new row index in the queue
             elif text == "Looking Right":
-                update_queue.put({"row": current_row_index, "color": "right_window_green"})
+                update_queue.put({"color": "right_window_green"})
             elif text == "Looking Down":
-                update_queue.put({"row": current_row_index, "color": "bottom_window_green"})
+                update_queue.put({"color": "bottom_window_green"})
             elif text == "Looking Up":
-                update_queue.put({"row": current_row_index, "color": "top_window_green"})
+                update_queue.put({"color": "top_window_green"})
             else:
-                update_queue.put({"row": current_row_index, "color": None})
+                update_queue.put({"color": None})
 
 
             #nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rotation_vec, translation_vec, cam_matrix,
@@ -136,8 +128,10 @@ ua_df = pd.read_csv(ua_file_path, usecols=['Ukrainian Word', 'English Translatio
 @app.route('/get_data')
 def get_data():
     row_index = request.args.get('row', default=2, type=int)
+    #print(f"Request received for row index: {row_index}")  # Debugging line
     if 0 <= row_index < len(ua_df):
         data = ua_df.loc[row_index].to_dict()
+        #print(f"Returning data: {data}")  # Debugging line
     else:
         data = {'Error': 'Row index out of range'}
     return jsonify(data)
@@ -148,15 +142,15 @@ def listen_updates():
         while True:
             row_index = update_queue.get()
             if row_index["color"] == "left_window_green":
-                yield f'data: {{"row": {row_index["row"]}, "color": "left_window_green"}}\n\n'
+                yield f'data: {{"color": "left_window_green"}}\n\n'
             elif row_index["color"] == "right_window_green":
-                yield f'data: {{"row": {row_index["row"]}, "color": "right_window_green"}}\n\n'
+                yield f'data: {{"color": "right_window_green"}}\n\n'
             elif row_index["color"] == "bottom_window_green":
-                yield f'data: {{"row": {row_index["row"]}, "color": "bottom_window_green"}}\n\n'
+                yield f'data: {{"color": "bottom_window_green"}}\n\n'
             elif row_index["color"] == "top_window_green":
-                yield f'data: {{"row": {row_index["row"]}, "color": "top_window_green"}}\n\n'
+                yield f'data: {{"color": "top_window_green"}}\n\n'
             else:
-                yield f'data: {{"row": {row_index["row"]}, "color": "None"}}\n\n'
+                yield f'data: {{"color": "None"}}\n\n'
     return Response(event_stream(), mimetype='text/event-stream')
 
 @app.route('/')

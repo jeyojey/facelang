@@ -92,17 +92,17 @@
     <script>
     //var currentRow = -1;
     var updateTimeout = null;
-    var correctAnswerCount = 0;
 
     $(document).ready(function() {
-        var correctTranslation = '';
-        var correctAnswerCount = 0;
+        let correctTranslation;
+        var correctAnswerCount = -1;
 
         function resetWindowColors() {
             $('#left-window').css('background-color', 'blue');
             $('#right-window').css('background-color', 'red');
             $('#top-window').css('background-color', 'yellow');
             $('#bottom-window').css('background-color', 'purple');
+            console.log("Letting KNOW when reset colors:");
         }
 
         function listenForUpdates() {
@@ -141,88 +141,84 @@
                 if (newGreenWindow) {
                     clearTimeout(updateTimeout);
                     updateTimeout = setTimeout(function() {
-                        if (correctAnswerCount === 0){
+                        if (correctAnswerCount === -1){
+                            // resetWindowColors();
+                            fetchData().then(translation => {
+                                correctTranslation = translation;
+                                console.log("Correct Translation:", correctTranslation); // Debug log
+                                console.log("Should be reset now"); // Debug log
+                                correctAnswerCount++;
+                            });
+                        } else {
+                            checkCorrectAnswer(correctTranslation, newGreenWindow);
+                            console.log("Checked answer after 3 seconds"); // Debug log
                             resetWindowColors();
-                            const correctTranslation = fetchData();
-                            console.log("Should be reset now"); // Debug log
+                            fetchData().then(translation => {
+                                correctTranslation = translation;
+                                console.log("Should be reset now"); // Debug log
+                            });
                         }
-                        checkCorrectAnswer(correctTranslation);
-                        console.log("Checked answer after 3 seconds"); // Debug log
-                        resetWindowColors();
-                        const correctTranslation = fetchData();
-                        console.log("Should be reset now"); // Debug log
                     }, 3000);  // 3 seconds delay
                 }
             };
         }
 
         function fetchData() {
-            var rowIndex = Math.floor(Math.random() * 101); // Change 101 to your maximum number of rows if different
-            $.ajax({
-                url: '/get_data',
-                type: 'GET',
-                data: { row: rowIndex },
-                success: function(data) {
-                    if (data.Error) {
-                        alert(data.Error);
-                        return;
+            return new Promise((resolve, reject) => {
+                var rowIndex = Math.floor(Math.random() * 101); // Change 101 to your maximum number of rows if different
+                $.ajax({
+                    url: '/get_data',
+                    type: 'GET',
+                    data: { row: rowIndex },
+                    success: function(data) {
+                        if (data.Error) {
+                            alert(data.Error);
+                            return;
+                        }
+                        console.log("Fetched data:", data); // Debug log
+
+                        // Update the center window with the Ukrainian word
+                        $('#center-window').text(data['Ukrainian Word']);
+
+                        // Collect the words to be randomized
+                        let words = [
+                            {id: '#left-window'},
+                            {id: '#right-window'},
+                            {id: '#top-window'},
+                            {id: '#bottom-window'}
+                        ];
+
+                        // Randomize the order of the words array
+                        words = words.sort(() => Math.random() - 0.5);
+
+                        // Assign the words to the windows in the new randomized order
+                        $(words[0].id).text(data['English Translation']);
+                        $(words[1].id).text(data['Random Word 1']);
+                        $(words[2].id).text(data['Random Word 2']);
+                        $(words[3].id).text(data['Random Word 3']);
+
+                        // Store the correct translation to return it
+                        const correctTranslation = data['English Translation'];
+                        console.log("Corr translation inside the fetch function - shoulld be corrrect:", correctTranslation); // Debug log
+                        resolve(correctTranslation);
+                    },
+                    error: function() {
+                        alert('Error fetching data');
                     }
-                    console.log("Fetched data:", data); // Debug log
-
-                    // Update the center window with the Ukrainian word
-                    $('#center-window').text(data['Ukrainian Word']);
-
-                    // Collect the words to be randomized
-                    let words = [
-                        {id: '#left-window'},
-                        {id: '#right-window'},
-                        {id: '#top-window'},
-                        {id: '#bottom-window'}
-                    ];
-
-                    // Randomize the order of the words array
-                    words = words.sort(() => Math.random() - 0.5);
-
-                    // Assign the words to the windows in the new randomized order
-                    $(words[0].id).text(data['English Translation']);
-                    $(words[1].id).text(data['Random Word 1']);
-                    $(words[2].id).text(data['Random Word 2']);
-                    $(words[3].id).text(data['Random Word 3']);
-
-                    // Store the correct translation to return it
-                    correctTranslation = data['English Translation'];
-
-                },
-                error: function() {
-                    alert('Error fetching data');
-                }
+                });
             });
-            return correctTranslation;
         }
 
-        function checkCorrectAnswer() {
+        function checkCorrectAnswer(correctTranslation, newGreenWindow) {
             // Get the text of the green-colored window
-            let greenWindowText = '';
-            if ($('#left-window').css('background-color') === 'green') {
-                greenWindowText = $('#left-window').text();
-            } else if ($('#right-window').css('background-color') === 'green') {
-                greenWindowText = $('#right-window').text();
-            } else if ($('#top-window').css('background-color') === 'green') {
-                greenWindowText = $('#top-window').text();
-            } else if ($('#bottom-window').css('background-color') === 'green') {
-                greenWindowText = $('#bottom-window').text();
-            }
-
-            console.log("Green window text:", greenWindowText); // Debug log
-            console.log("eng_trans window text:", $(words[0].id).text()); // Debug log
+            greenWindowText = $(newGreenWindow).text();
+            console.log("eng_trans window text:", correctTranslation); //$(words[0].id).text()); // Debug log
 
             // Check if the green window text matches the correct English translation
-            // if (greenWindowText === $(words[0].id).text()) {
-            //    correctAnswerCount++;
-            //}
-
-
-            // $('#correct-count').text("Correct Answer Count: " + correctAnswerCount);
+            if (greenWindowText === correctTranslation) {
+                correctAnswerCount++;
+            }
+            $('#correct-count').text("Correct Answer Count: " + correctAnswerCount);
         }
 
         listenForUpdates();

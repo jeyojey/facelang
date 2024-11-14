@@ -19,15 +19,12 @@ numpy==1.24.4
 opencv-python-headless==4.10.0.84
 packaging==24.1
 pandas==2.0.3
-pillow==10.4.0
 protobuf==4.25.5
 pycparser==2.22
 pyparsing==3.1.2
-python-dateutil==2.9.0.post0
 pytz==2024.1
 requests==2.32.3
 six==1.16.0
-sounddevice==0.4.7
 urllib3==2.2.2
 Werkzeug==3.0.3
 zipp==3.19.2

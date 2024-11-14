@@ -1,1 +1,4 @@
 libgl1-mesa-dev
+libgl1
+libatlas-base-dev
+libopencv-dev

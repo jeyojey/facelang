@@ -4,8 +4,6 @@ import mediapipe as mp
 import numpy as np
 import time
 import pandas as pd
-import random
-import threading
 import queue
 
 app = Flask(__name__, static_folder='static')

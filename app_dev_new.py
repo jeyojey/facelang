@@ -8,7 +8,7 @@ import random
 import threading
 import queue
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # Setup Mediapipe and OpenCV
 mp_face_mesh = mp.solutions.face_mesh
@@ -179,4 +179,4 @@ def process_video():
     cap.release()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

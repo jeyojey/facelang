@@ -123,16 +123,13 @@ def process_frame(frame):
            b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 ua_file_path = 'vocab/ukrainian_vocabulary.csv'
-#ua_df = pd.read_csv(ua_file_path, usecols=['Ukrainian Word', 'English Translation', 'Random Word 1', 'Random Word 2', 'Random Word 3'])
-ua_df = np.genfromtxt(ua_file_path, delimiter=',', dtype=None, encoding='utf-8', names=True)
-
+ua_df = pd.read_csv(ua_file_path, usecols=['Ukrainian Word', 'English Translation', 'Random Word 1', 'Random Word 2', 'Random Word 3'])
 
 @app.route('/get_data')
 def get_data():
     row_index = request.args.get('row', default=2, type=int)
     if 0 <= row_index < len(ua_df):
-        data = {name: ua_df[row_index][i] for i, name in enumerate(ua_df.dtype.names)}
-        #data = ua_df.loc[row_index].to_dict()
+        data = ua_df.loc[row_index].to_dict()
         print(data)
     else:
         data = {'Error': 'Row index out of range'}

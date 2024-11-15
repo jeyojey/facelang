@@ -5,8 +5,9 @@ import numpy as np
 import time
 import pandas as pd
 import queue
+from waitress import serve
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 # Setup Mediapipe and OpenCV
 mp_face_mesh = mp.solutions.face_mesh
@@ -176,5 +177,8 @@ def process_video():
 
     cap.release()
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+#if __name__ == '__main__':
+#    app.run(debug=True, port=5000, threaded=True)
+if __name__ == "__main__":
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=8080)
